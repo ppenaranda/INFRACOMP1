@@ -33,11 +33,13 @@ public class Celda extends Thread {
 
     public synchronized void run(){
         try {
+            //System.out.println("Ejecutando hilo en celda (" + fila + ", " + columna + ")");
             Celda celda = this;
             celda.notifyNeighbours();
             wait();
         }
         catch (InterruptedException e) {}
+
     }
 
     public void notifyNeighbours(){
