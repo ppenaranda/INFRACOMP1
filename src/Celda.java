@@ -1,69 +1,75 @@
 
 public class Celda extends Thread {
-    boolean[][] mat;
-    int fila;
-    int columna;
-    boolean estaViva;
-    int n;
-    int vecinos;
+    private int fila;
+    private int columna;
+    private boolean estaViva;
+    private int vecinos = 0;
+    private boolean notifica;
 
-    public Celda(boolean[][] mat, int fila, int columna, boolean estaViva, int n, int vecinos) {
-        this.mat = mat;
+    public Celda(int fila, int columna, boolean estaViva, boolean notifica) {
         this.fila = fila;
         this.columna = columna;
         this.estaViva = estaViva;
-        this.n = n;
-        this.vecinos = vecinos;
-//        if(fila == 0){
-//            this.vecinos++;
-//        }
-//        if(fila == n){
-//            this.vecinos++;
-//        }
-//        if(columna == 0){
-//            this.vecinos++;
-//        }
-//        if(columna == n){
-//            this.vecinos++;
-//        }
-//        //todo: Creo que no hay un caso para los que tienen tres vecinos.
-//        if(fila != 0 && fila != n && columna != 0 && columna != n) this.vecinos = 4;
+        this.notifica = notifica;
 
-        notifyNeighbours();
-    }
-
-    public synchronized void run(){
-        try {
-            //System.out.println("Ejecutando hilo en celda (" + fila + ", " + columna + ")");
-            Celda celda = this;
-            //while(contador < vecinos) wait
-            //actualizar estado de vida()
-            celda.notifyNeighbours();
-            wait();
+        for (int i = fila - 1; i <= fila + 1; i++){
+            for (int j = columna - 1; j <= columna + 1; j++){
+                if (i < 0 || j < 0 || i >= Main.n || j >= Main.n  || (i == fila && j == columna)){
+                    continue;
+                }
+                vecinos++;
+            }
         }
-        catch (InterruptedException e) {}
 
     }
 
-    public void notifyNeighbours(){
-        if(fila == 0){
-            //notificar solo abajo
-            //notifico al vecino agregandole 1 a su contador
+    public void run(){
+        if (notifica){
+            notificarVecinos();
         }
-        if(fila == n){
-            //notificar solo arriba
+        else{
+            cambiarEstado();
         }
-        if(columna == 0){
-            //notificar solo a la derecha
-        }
-        if(columna == n){
-            //Notificar solo a la izquierda
-        }
-        if(fila != 0 && fila != n && columna != 0 && columna != n){
-            //Notifica a todos los vecinos
+
+    }
+
+    public void notificarVecinos(){
+        for (int i = fila - 1; i <= fila + 1; i++){
+            for (int j = columna - 1; j <= columna + 1; j++){
+                if (i < 0 || j < 0 || i >= Main.n  || j >= Main.n  || (i == fila && j == columna)){
+                    continue;
+                }
+                Main.buzones[i][j].recibir(estaViva);
+            }
         }
     }
 
-    //si (conroller.done) cambia el estado
+    public void cambiarEstado(){
+        int contador = 0;
+        int contadorVivos = 0;
+
+        while (contador < vecinos){
+            Boolean estado = Main.buzones[fila][columna].retornar();
+            if (estado == true){
+                contadorVivos++;
+            }
+            contador++;
+        }
+
+        if (estaViva){
+            if (contadorVivos == 0 || contadorVivos > 3){
+                estaViva = false;
+            }
+        }
+        else{
+            if (contadorVivos == 3){
+                estaViva = true;
+            }
+        }
+    }
+
+    public Boolean getEstaViva(){
+        return estaViva;
+    }
 
 }

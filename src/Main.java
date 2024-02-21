@@ -1,49 +1,85 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 
 public class Main extends Thread {
-    public static void main(String[] args) {
-        if (args.length < 2) {
-            System.out.println("Uso: java Main <archivo_entrada> <num_generaciones>");
-            return;
-        }
+    public static Buzon[][] buzones;
+    public static Celda[][] celdasNotifican;
+    public static Celda[][] celdasReciben;
+    public static int n;
 
-        String archivoEntrada = args[0];
-        int numGeneraciones = Integer.parseInt(args[1]);
+    public static void main(String[] args) throws Exception{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Ingrese el nombre del archivo: ");
+
+        String archivoEntrada = br.readLine();
 
         boolean[][] mat = leerEstadoInicial(archivoEntrada);
-        int N = mat.length;
+        n = mat.length;
 
-        for (int gen = 0; gen < numGeneraciones; gen++) {
-            System.out.println("Iniciando generación " + (gen + 1));
+        celdasNotifican = new Celda[n][n];
+        celdasReciben = new Celda[n][n];
+        Main.buzones = new Buzon[n][n];
 
-            System.out.println("Generacion " + (gen + 1) + ":");
-            imprimirMatriz(mat);
+        System.out.println("Ingrese el número de generaciones: ");
+        int numGeneraciones = Integer.parseInt(br.readLine());
+        br.close();
 
-            for (int fila = 0; fila <= N; fila++) {
-                for (int columna = 0; columna <= N; columna++) {
-                    int vecinos = 0;
-                    // arriba y abajo
-                    if(fila == N || fila == 0){
-                        ++vecinos;
-                    }else{
-                        vecinos = vecinos +2;
-                    }
-                    // a ambos lados
-                    if(columna == N || columna == 0){
-                        ++vecinos;
-                    }else{
-                        vecinos = vecinos +2;
-                    }
-                    Celda celda = new Celda(mat, fila, columna, mat[fila][columna], N, vecinos);
-                    Thread thread = new Thread(celda);
-                    thread.start();
-                }
+        for (int fila = 0; fila < n; fila++) {
+            for (int columna = 0; columna < n; columna++) {
+                Main.buzones[fila][columna] = new Buzon(fila+1);
             }
         }
 
+        for (int gen = 0; gen < numGeneraciones; gen++) {
+
+            for (int fila = 0; fila < n; fila++) {
+                for (int columna = 0; columna < n; columna++) {
+                    Boolean estado;
+                    if (gen == 0){
+                        estado = mat[fila][columna];
+                    }
+                    else{
+                        estado = celdasReciben[fila][columna].getEstaViva();
+                    }
+                    celdasNotifican[fila][columna] = new Celda(fila, columna, estado, true);
+                    celdasReciben[fila][columna] = new Celda(fila, columna, estado, false);
+                }
+
+            }
+
+            if (gen == 0){
+                System.out.println("Generacion 0:");
+                imprimirMatriz();
+            }
+
+            for (int fila = 0; fila < n; fila++) {
+                for (int columna = 0; columna < n; columna++) {
+                    celdasNotifican[fila][columna].start();
+                    celdasReciben[fila][columna].start();
+                }
+            }
+
+            for (int fila = 0; fila < n; fila++) {
+                for (int columna = 0; columna < n; columna++) {
+                    try {
+                        celdasNotifican[fila][columna].join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        celdasReciben[fila][columna].join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            System.out.println("Generacion " + (gen + 1) + ":");
+            imprimirMatriz();
+        }
     }
 
     private static boolean[][] leerEstadoInicial(String archivo) {
@@ -68,16 +104,16 @@ public class Main extends Thread {
         }
     }
 
-//    private static void imprimirMatriz(boolean[][] mat) {
-//        for (boolean[] fila : mat) {
-//            for (boolean valor : fila) {
-//                System.out.print(valor ? "true" : "false");
-//                System.out.print(",");
-//            }
-//            System.out.println();
-//        }
-//    }
+   private static void imprimirMatriz() {
+       for (Celda[] fila : celdasReciben) {
+           for (Celda celda : fila) {
+               System.out.print(celda.getEstaViva() ? ":)" : "x(");
+               System.out.print(" ");
+           }
+           System.out.println();
+       }
+   }
 
-    //Hacer la administración de los turnos
+
 }
 
